@@ -19,6 +19,11 @@ export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'
 export type AssessmentStatus = 'draft' | 'published'
 export type CbtQuestionKind = 'single_choice' | 'multi_choice' | 'true_false'
 export type CbtAttemptStatus = 'in_progress' | 'submitted' | 'expired'
+export type FeeInvoiceStatus = 'draft' | 'issued' | 'void'
+export type PaymentMethod = 'card' | 'bank_transfer' | 'cash' | 'pos' | 'waiver'
+export type PaymentStatus = 'pending' | 'confirmed' | 'failed' | 'refunded'
+export type PayerKind = 'student' | 'guardian' | 'bursary'
+export type PaymentProvider = 'paystack' | 'flutterwave' | 'remita' | 'stripe'
 
 type Timestamps = { created_at: string; updated_at: string }
 
@@ -151,6 +156,54 @@ export type MessageRow = Timestamps & {
   body: string; withdrawn_at: string | null
 }
 
+/* Fees ------------------------------------------------------------------- */
+
+export type FeeStructureRow = Timestamps & {
+  id: string; school_id: string; term_id: string; class_level_id: string
+  name: string; is_active: boolean
+}
+export type FeeItemRow = Timestamps & {
+  id: string; school_id: string; fee_structure_id: string
+  label: string; amount: number; is_optional: boolean; ordinal: number
+}
+export type InvoiceRow = Timestamps & {
+  id: string; school_id: string; enrollment_id: string; fee_structure_id: string
+  invoice_number: string; total_amount: number; status: FeeInvoiceStatus
+  issued_on: string; due_on: string | null
+}
+export type InvoiceItemRow = {
+  id: string; school_id: string; invoice_id: string
+  label: string; amount: number; ordinal: number; created_at: string
+}
+export type PaymentRow = Timestamps & {
+  id: string; school_id: string; invoice_id: string; amount: number
+  method: PaymentMethod; status: PaymentStatus
+  payer_kind: PayerKind; payer_user_id: string | null
+  payer_guardian_id: string | null; payer_name: string | null
+  reference: string; provider: string | null; provider_reference: string | null
+  note: string | null; paid_at: string | null
+  confirmed_by: string | null; confirmed_at: string | null
+}
+/** No secret key is stored here by design — see migration 0017. */
+export type SchoolPaymentSettingsRow = Timestamps & {
+  school_id: string; provider: PaymentProvider
+  is_enabled: boolean; is_live: boolean
+  public_key: string | null; merchant_code: string | null; service_type_id: string | null
+}
+/** security_invoker view: answers under the caller's own RLS. */
+export type InvoiceBalanceRow = {
+  invoice_id: string
+  school_id: string
+  enrollment_id: string
+  invoice_number: string
+  total_amount: number
+  amount_paid: number
+  balance: number
+  amount_pending: number
+  status: FeeInvoiceStatus
+  due_on: string | null
+}
+
 export type ResultSheetRow = {
   subject_id: string
   subject_name: string
@@ -202,8 +255,21 @@ export type Database = {
       message_threads: Table<MessageThreadRow, 'school_id' | 'subject'>
       thread_participants: Table<ThreadParticipantRow, 'school_id' | 'thread_id' | 'user_id' | 'role_at_join'>
       messages: Table<MessageRow, 'school_id' | 'thread_id' | 'body'>
+      fee_structures: Table<FeeStructureRow, 'school_id' | 'term_id' | 'class_level_id' | 'name'>
+      fee_items: Table<FeeItemRow, 'school_id' | 'fee_structure_id' | 'label' | 'amount'>
+      invoices: Table<InvoiceRow, 'school_id' | 'enrollment_id' | 'fee_structure_id' | 'invoice_number' | 'total_amount'>
+      invoice_items: Table<InvoiceItemRow, 'school_id' | 'invoice_id' | 'label' | 'amount'>
+      payments: Table<PaymentRow, 'school_id' | 'invoice_id' | 'amount' | 'method' | 'payer_kind' | 'reference'>
+      school_payment_settings: Table<SchoolPaymentSettingsRow, 'school_id'>
     }
-    Views: Record<never, never>
+    Views: {
+      invoice_balances: {
+        Row: InvoiceBalanceRow
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+    }
     Functions: {
       create_school: {
         Args: { p_name: string; p_slug: string; p_admin_email: string; p_config: Json; p_preset?: string }
@@ -233,6 +299,37 @@ export type Database = {
       messageable_staff: {
         Args: { p_school_id: string }
         Returns: { user_id: string; full_name: string; designation: string | null }[]
+      }
+      generate_invoices: {
+        Args: { p_school_id: string; p_fee_structure_id: string; p_due_on?: string | null }
+        Returns: number
+      }
+      begin_card_payment: {
+        Args: {
+          p_invoice_id: string
+          p_amount?: number
+          p_payer_kind?: PayerKind
+          p_payer_guardian_id?: string | null
+          p_payer_name?: string | null
+        }
+        Returns: Json
+      }
+      confirm_card_payment: {
+        Args: { p_reference: string; p_provider_reference: string; p_amount_paid: number }
+        Returns: Json
+      }
+      fail_card_payment: { Args: { p_reference: string; p_note?: string | null }; Returns: undefined }
+      record_offline_payment: {
+        Args: {
+          p_invoice_id: string
+          p_amount: number
+          p_method: PaymentMethod
+          p_payer_kind: PayerKind
+          p_payer_guardian_id?: string | null
+          p_payer_name?: string | null
+          p_note?: string | null
+        }
+        Returns: string
       }
     }
     Enums: Record<never, never>

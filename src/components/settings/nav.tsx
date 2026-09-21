@@ -8,6 +8,8 @@ const TABS = [
   { href: '/settings', label: 'School profile' },
   { href: '/settings/academic', label: 'Academic rules' },
   { href: '/settings/classes', label: 'Classes and subjects' },
+  { href: '/settings/branding', label: 'Branding' },
+  { href: '/settings/payments', label: 'Payments' },
   { href: '/settings/people', label: 'Access' },
   { href: '/settings/audit', label: 'Audit log' },
 ]

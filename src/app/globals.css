@@ -1,21 +1,51 @@
 @import 'tailwindcss';
 
+/*
+ * The whole system's look lives in these tokens. Components reference them and
+ * nothing else, so changing the palette here changes every screen — admin,
+ * teacher and pupil — in one place.
+ */
 @theme {
-  --color-canvas: #f6f7fb;
+  /* Surfaces. Cards are white on a faint tinted page, separated by soft
+     shadow rather than the hard borders the old theme used. */
+  --color-canvas: #f7f6fb;
   --color-surface: #ffffff;
-  --color-ink: #1b2136;
-  --color-ink-muted: #667085;
-  --color-line: #e7e9f2;
-  --color-accent: #6366f1;
-  --color-accent-soft: #eef0ff;
-  --color-positive: #0f9d7a;
-  --color-warn: #c08a10;
-  --color-danger: #d8443c;
-  --radius-card: 14px;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-}
+  --color-line: #eeecf6;
 
-* { border-color: var(--color-line); }
+  --color-ink: #16112e;
+  --color-ink-muted: #6f6b86;
+
+  /* One restrained accent, carried by the sidebar, buttons and focus rings. */
+  --color-accent: #7c3aed;
+  --color-accent-strong: #6d28d9;
+  --color-accent-soft: #f1ecfe;
+
+  --color-positive: #12a474;
+  --color-warn: #e08700;
+  --color-danger: #e0455c;
+
+  /* Pastel tints for stat tiles and category chips. Each is light enough to
+     carry --color-ink at full contrast. */
+  --color-tint-violet: #f2edff;
+  --color-tint-mint: #e5f6f3;
+  --color-tint-peach: #fff0e8;
+  --color-tint-sky: #e9f2ff;
+  --color-tint-rose: #ffedf2;
+  --color-tint-lemon: #fff7e0;
+
+  --color-icon-violet: #7c3aed;
+  --color-icon-mint: #0f9d8f;
+  --color-icon-peach: #f97316;
+  --color-icon-sky: #2f80ed;
+
+  --radius-card: 18px;
+  --radius-control: 12px;
+
+  --shadow-card: 0 1px 2px rgba(22, 17, 46, 0.04), 0 8px 24px -12px rgba(22, 17, 46, 0.10);
+  --shadow-raised: 0 2px 6px rgba(22, 17, 46, 0.06), 0 18px 40px -20px rgba(22, 17, 46, 0.18);
+
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
 
 html, body {
   background: var(--color-canvas);
@@ -30,18 +60,27 @@ button, [role='button'], a, input, select, textarea { touch-action: manipulation
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
+::selection { background: var(--color-accent-soft); color: var(--color-accent-strong); }
+
 /* Nigerian schools print everything. Every list and record view has to survive
-   a trip through a laser printer on A4. */
+   a trip through a laser printer on A4, so the soft shadows and tints that
+   carry the screen design are stripped back to plain rules and black on white. */
 @media print {
   @page { margin: 14mm; size: A4; }
   html, body { background: #fff; color: #000; font-size: 11pt; }
   .no-print, nav, aside, header button, .print-hide { display: none !important; }
   .print-only { display: block !important; }
   main { padding: 0 !important; }
-  .card, table { border: 1px solid #999 !important; box-shadow: none !important; break-inside: auto; }
+  .card, table {
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    break-inside: auto;
+  }
+  [class*='bg-tint-'] { background: #fff !important; }
   thead { display: table-header-group; }
   tr { break-inside: avoid; }
   a[href]::after { content: ''; }
@@ -53,8 +92,8 @@ button, [role='button'], a, input, select, textarea { touch-action: manipulation
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: #eceef6;
-  border-radius: 6px;
+  background: #efedf7;
+  border-radius: 8px;
 }
 .skeleton::after {
   content: '';

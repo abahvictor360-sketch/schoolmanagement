@@ -240,3 +240,50 @@ export const cbtAnswersSchema = z.object({
     }))
     .max(500),
 })
+
+/* Fees ------------------------------------------------------------------- */
+
+export const feeStructureSchema = z.object({
+  term_id: z.string().uuid('Choose a term'),
+  class_level_id: z.string().uuid('Choose a class level'),
+  name: trimmed(2, 120),
+  items: z
+    .array(z.object({
+      label: trimmed(1, 120),
+      amount: z.coerce.number().min(0, 'Cannot be negative').max(100_000_000),
+      is_optional: z.coerce.boolean().default(false),
+    }))
+    .min(1, 'Add at least one fee item')
+    .max(40),
+})
+
+export const paymentSettingsSchema = z.object({
+  provider: z.enum(['paystack', 'flutterwave', 'remita', 'stripe']),
+  is_enabled: z.coerce.boolean().default(false),
+  is_live: z.coerce.boolean().default(false),
+  public_key: optionalText(200),
+  merchant_code: optionalText(80),
+  service_type_id: optionalText(80),
+})
+
+export const startPaymentSchema = z.object({
+  invoice_id: z.string().uuid(),
+  // Blank means "the whole outstanding balance"; the database decides either way.
+  amount: z.union([z.literal(''), z.coerce.number().positive()]).optional()
+    .transform((v) => (v === '' || v === undefined ? null : Number(v))),
+  payer_kind: z.enum(['student', 'guardian', 'bursary']).default('student'),
+  payer_guardian_id: z.union([z.literal(''), z.string().uuid()]).optional()
+    .transform((v) => v || null),
+  payer_name: optionalText(160),
+})
+
+export const offlinePaymentSchema = z.object({
+  invoice_id: z.string().uuid(),
+  amount: z.coerce.number().positive('Enter an amount'),
+  method: z.enum(['bank_transfer', 'cash', 'pos', 'waiver']),
+  payer_kind: z.enum(['student', 'guardian', 'bursary']),
+  payer_guardian_id: z.union([z.literal(''), z.string().uuid()]).optional()
+    .transform((v) => v || null),
+  payer_name: optionalText(160),
+  note: optionalText(400),
+})
