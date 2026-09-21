@@ -5,21 +5,27 @@
 begin;
 
 -- ------------------------------------------------------------------- users
--- Password for every demo account: "demo-password-1"
+-- Password for every demo account: "SchoolHub#2026".
+--
+-- These are throwaway .test addresses on purpose: no real address, and no
+-- password anyone should reuse, belongs in a file that lives in git. To give a
+-- real person platform-admin access, sign them up through /signup and then run
+-- the one-liner under "Promoting a real account" in the README.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 select
   '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
-  crypt('demo-password-1', gen_salt('bf')), now(),
+  crypt('SchoolHub#2026', gen_salt('bf')), now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   jsonb_build_object('full_name', u.full_name), now(), now()
 from (values
   ('11111111-1111-4111-8111-111111111111'::uuid, 'platform@schoolhub.test',  'Platform Operator'),
   ('22222222-2222-4222-8222-222222222222'::uuid, 'admin@greenfield.test',    'Adaeze Obi'),
   ('33333333-3333-4333-8333-333333333333'::uuid, 'teacher@greenfield.test',  'Musa Bello'),
-  ('44444444-4444-4444-8444-444444444444'::uuid, 'admin@brightstar.test',    'Ifeoma Eze')
+  ('44444444-4444-4444-8444-444444444444'::uuid, 'admin@brightstar.test',    'Ifeoma Eze'),
+  ('55555555-5555-4555-8555-555555555555'::uuid, 'teacher@brightstar.test',  'Fatima Sani')
 ) as u(id, email, full_name)
 on conflict (id) do nothing;
 
@@ -74,7 +80,8 @@ on conflict (school_id) do nothing;
 insert into public.memberships (user_id, school_id, role) values
   ('22222222-2222-4222-8222-222222222222', 'aaaaaaaa-0000-4000-8000-000000000001', 'school_admin'),
   ('33333333-3333-4333-8333-333333333333', 'aaaaaaaa-0000-4000-8000-000000000001', 'teacher'),
-  ('44444444-4444-4444-8444-444444444444', 'bbbbbbbb-0000-4000-8000-000000000002', 'school_admin')
+  ('44444444-4444-4444-8444-444444444444', 'bbbbbbbb-0000-4000-8000-000000000002', 'school_admin'),
+  ('55555555-5555-4555-8555-555555555555', 'bbbbbbbb-0000-4000-8000-000000000002', 'teacher')
 on conflict (user_id, school_id) do nothing;
 
 -- -------------------------------------------------- calendar and structure

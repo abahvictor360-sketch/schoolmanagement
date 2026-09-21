@@ -68,21 +68,44 @@ rows in the next term and closes the old ones; nothing is deleted.
 | Functions region | `fra1` — closest to the first market |
 
 The database is seeded with two independent schools so the isolation story is
-visible rather than described. Demo password for all four accounts is
-`demo-password-1`.
+visible rather than described. Every seeded account uses the password
+`SchoolHub#2026`.
 
-| Account | Role |
-|---|---|
-| `platform@schoolhub.test` | platform admin — can create schools |
-| `admin@greenfield.test` | Greenfield Academy administrator |
-| `teacher@greenfield.test` | Greenfield teacher — attendance only |
-| `admin@brightstar.test` | Brightstar College administrator |
+| Account | Role | What it is for |
+|---|---|---|
+| `platform@schoolhub.test` | platform admin | Create a school and invite its first administrator |
+| `admin@greenfield.test` | Greenfield Academy admin | Full school: records, import, enrollment, settings, audit log |
+| `teacher@greenfield.test` | Greenfield teacher | Attendance only — proves the role boundary |
+| `admin@brightstar.test` | Brightstar College admin | The other tenant, to check nothing bleeds across |
+| `teacher@brightstar.test` | Brightstar teacher | Teacher view on the second tenant |
 
-Sign in as the two administrators in turn: each sees 240 students, 12 staff and
-80 guardians, and neither can see the other's, because RLS — not the UI —
-decides what a query returns.
+A useful ten-minute pass: sign in as each administrator in turn and note that
+both see 240 students, 12 staff and 80 guardians, and neither sees the other's
+— RLS, not the UI, decides what a query returns. Then sign in as a teacher: the
+sidebar drops to Dashboard and Attendance, and the pages behind the missing
+links refuse the request rather than merely hiding it.
 
-**Before a pilot:** rotate these demo accounts out, point
+### Promoting a real account
+
+Never put a real address or a shared password in the seed file. Sign the person
+up at `/signup`, then promote them once:
+
+```sql
+update public.profiles set is_platform_admin = true
+where id = (select id from auth.users where email = 'person@example.com');
+
+-- Optional: also make them an administrator of a specific school.
+insert into public.memberships (user_id, school_id, role)
+select u.id, s.id, 'school_admin'
+from auth.users u, public.schools s
+where u.email = 'person@example.com' and s.slug = 'greenfield'
+on conflict (user_id, school_id) do update set role = excluded.role;
+```
+
+They need to sign out and back in for the change to take effect, because the
+platform-admin flag is read once per request from `profiles`.
+
+**Before a pilot:** delete these demo accounts and the demo schools, point
 `NEXT_PUBLIC_ROOT_DOMAIN` at a real apex domain with wildcard DNS so each school
 gets its own subdomain, and turn on Supabase point-in-time recovery.
 
