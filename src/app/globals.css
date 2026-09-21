@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-canvas: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-ink: #1b2136;
+  --color-ink-muted: #667085;
+  --color-line: #e7e9f2;
+  --color-accent: #6366f1;
+  --color-accent-soft: #eef0ff;
+  --color-positive: #0f9d7a;
+  --color-warn: #c08a10;
+  --color-danger: #d8443c;
+  --radius-card: 14px;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { border-color: var(--color-line); }
+
+html, body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Touch targets stay thumb-sized on the cheap phones teachers actually use. */
+button, [role='button'], a, input, select, textarea { touch-action: manipulation; }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Nigerian schools print everything. Every list and record view has to survive
+   a trip through a laser printer on A4. */
+@media print {
+  @page { margin: 14mm; size: A4; }
+  html, body { background: #fff; color: #000; font-size: 11pt; }
+  .no-print, nav, aside, header button, .print-hide { display: none !important; }
+  .print-only { display: block !important; }
+  main { padding: 0 !important; }
+  .card, table { border: 1px solid #999 !important; box-shadow: none !important; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  a[href]::after { content: ''; }
+}
+
+.print-only { display: none; }
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #eceef6;
+  border-radius: 6px;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
