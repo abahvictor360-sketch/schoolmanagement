@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarCheck, ClipboardList, Home, MessageSquare, PenSquare, Wallet } from 'lucide-react'
 import { SchoolMark } from '@/components/school-mark'
-import { cn, initials } from '@/lib/utils'
+import { AccountMenu } from '@/components/account-menu'
+import { HeaderIconLink } from '@/components/header-icon-link'
+import { cn } from '@/lib/utils'
 import type { StudentContext } from '@/lib/student'
 
 const NAV = [
@@ -22,9 +24,11 @@ const NAV = [
  */
 export function PortalShell({
   ctx,
+  unreadMessages = 0,
   children,
 }: {
   ctx: StudentContext
+  unreadMessages?: number
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -64,26 +68,17 @@ export function PortalShell({
             <SchoolMark name={ctx.school.name} logoUrl={ctx.school.logo_url} size="sm" />
             <span className="truncate text-sm font-semibold">{ctx.school.name}</span>
           </span>
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-[13px] leading-tight font-medium">
-                {ctx.student.first_name} {ctx.student.last_name}
-              </p>
-              <p className="text-[11px] leading-tight text-ink-muted">
-                {ctx.enrollment?.class_label ?? 'Not enrolled'}
-              </p>
-            </div>
-            <span
-              aria-hidden
-              className="grid size-10 place-items-center rounded-full bg-accent text-[13px] font-bold text-white"
-            >
-              {initials(`${ctx.student.first_name} ${ctx.student.last_name}`)}
-            </span>
-            <form action="/auth/signout" method="post">
-              <button type="submit" className="text-[13px] text-ink-muted underline-offset-2 hover:underline">
-                Sign out
-              </button>
-            </form>
+          <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
+            <HeaderIconLink
+              href="/portal/messages"
+              label="Messages"
+              count={unreadMessages}
+              icon={MessageSquare}
+            />
+            <AccountMenu
+              name={`${ctx.student.first_name} ${ctx.student.last_name}`}
+              meta={ctx.enrollment?.class_label ?? 'Not enrolled'}
+            />
           </div>
         </header>
 

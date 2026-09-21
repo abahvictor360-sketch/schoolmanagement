@@ -5,9 +5,11 @@ import { requireSchool } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { money } from '@/lib/money'
 import {
-  Badge, Card, CardBody, CardHeader, CardTitle, EmptyState, StatTile,
+  Badge, Card, CardBody, CardHeader, CardTitle, EmptyState, Meter, StatTile,
 } from '@/components/ui/primitives'
 import type { InvoiceBalanceRow } from '@/lib/database.types'
+import { listMyThreads } from '@/lib/messaging'
+import { RecentThreads } from '@/components/messaging/recent-threads'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -29,7 +31,7 @@ export default async function DashboardPage() {
       academic_session: { label: string } | null
     }>()
 
-  const [students, staff, arms, enrolled, registersToday, balances] = await Promise.all([
+  const [students, staff, arms, enrolled, registersToday, balances, threads] = await Promise.all([
     supabase.from('students').select('id', { count: 'exact', head: true })
       .eq('school_id', ctx.school.id).eq('status', 'active'),
     supabase.from('staff').select('id', { count: 'exact', head: true })
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
     supabase.from('invoice_balances').select('total_amount, amount_paid, balance')
       .eq('school_id', ctx.school.id)
       .returns<Pick<InvoiceBalanceRow, 'total_amount' | 'amount_paid' | 'balance'>[]>(),
+    listMyThreads(ctx.userId),
   ])
 
   const rows = balances.data ?? []
@@ -109,23 +112,17 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardBody className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <StatTile label="Billed" value={money(ctx.config, billed)} tint="violet" />
-              <StatTile label="Collected" value={money(ctx.config, collected)} tint="mint" />
-              <StatTile label="Outstanding" value={money(ctx.config, outstanding)} tint="peach" />
+              <StatTile label="Billed" value={money(ctx.config, billed)} tint="violet" size="sm" />
+              <StatTile label="Collected" value={money(ctx.config, collected)} tint="mint" size="sm" />
+              <StatTile label="Outstanding" value={money(ctx.config, outstanding)} tint="peach" size="sm" />
             </div>
 
             {/* A single honest bar: what has come in against what was billed. */}
             <div>
-              <div
-                role="img"
-                aria-label={`${collectionRate ?? 0}% of fees billed have been collected`}
-                className="h-3 w-full overflow-hidden rounded-full bg-canvas"
-              >
-                <div
-                  className="h-full rounded-full bg-accent transition-[width]"
-                  style={{ width: `${Math.min(100, collectionRate ?? 0)}%` }}
-                />
-              </div>
+              <Meter
+                value={collectionRate ?? 0}
+                label={`${collectionRate ?? 0}% of fees billed have been collected`}
+              />
               <p className="mt-2 text-[12px] text-ink-muted">
                 {rows.filter((r) => Number(r.balance) <= 0).length} of {rows.length} invoices
                 settled.
@@ -135,7 +132,7 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Attendance today</CardTitle>
@@ -143,14 +140,24 @@ export default async function DashboardPage() {
               {takenToday} of {armsCount}
             </Badge>
           </CardHeader>
-          <CardBody>
-            <p className="text-sm text-ink-muted">
-              Registers are taken per class arm per day. A teacher can amend a register after
-              saving it, and every change is written to the audit log.
+          <CardBody className="space-y-3">
+            <p className="text-[34px] leading-none font-bold tracking-[-0.03em] tabular-nums">
+              {attendancePct}
+              <span className="text-xl text-ink-muted">%</span>
+            </p>
+            <Meter
+              value={takenToday}
+              max={armsCount}
+              label={`${takenToday} of ${armsCount} class arms have a register today`}
+            />
+            <p className="text-[12px] text-ink-muted">
+              {armsCount === 0
+                ? 'No class arms are set up yet.'
+                : `${armsCount - takenToday} class arm${armsCount - takenToday === 1 ? '' : 's'} still to be taken.`}
             </p>
             <Link
               href="/attendance"
-              className="mt-3 inline-block text-sm font-semibold text-accent-on-soft underline underline-offset-2"
+              className="inline-block text-sm font-semibold text-accent-on-soft underline underline-offset-2"
             >
               Take a register
             </Link>
@@ -194,6 +201,8 @@ export default async function DashboardPage() {
             )}
           </CardBody>
         </Card>
+
+        <RecentThreads threads={threads} basePath="/messages" />
       </div>
     </div>
   )

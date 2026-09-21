@@ -31,26 +31,42 @@ export function StatTile({
   tint = 'violet',
   icon: Icon,
   hint,
+  size = 'md',
 }: {
   label: string
   value: React.ReactNode
   tint?: TintName
   icon?: React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>
   hint?: string
+  /**
+   * 'sm' for tiles nested inside a card. A full-size tile stretched across a
+   * third of a wide card reads as inflated next to the page's own top row, so
+   * the nested ones keep the tint and drop the height.
+   */
+  size?: 'md' | 'sm'
 }) {
   const t = tints[tint]
+  const small = size === 'sm'
   return (
     // h-full so tiles in a grid row match height whether or not they carry a
     // hint; min-h keeps a lone tile from collapsing.
     <div
       className={cn(
-        'flex h-full min-h-[92px] items-start justify-between gap-2 rounded-[18px] px-4 py-3.5',
+        'flex h-full items-start justify-between gap-2 rounded-[18px]',
+        small ? 'min-h-[68px] px-3.5 py-3' : 'min-h-[92px] px-4 py-3.5',
         t.bg,
       )}
     >
       <div className="min-w-0">
         <p className="text-[12px] font-medium text-ink-muted">{label}</p>
-        <p className="mt-0.5 text-2xl font-bold tracking-[-0.02em] tabular-nums">{value}</p>
+        <p
+          className={cn(
+            'mt-0.5 font-bold tracking-[-0.02em] tabular-nums',
+            small ? 'text-[19px]' : 'text-2xl',
+          )}
+        >
+          {value}
+        </p>
         {hint ? <p className="mt-0.5 line-clamp-1 text-[12px] text-ink-muted">{hint}</p> : null}
       </div>
       {/* Hidden at 360px: a 44px chip costs a third of the tile's width there,
@@ -65,6 +81,34 @@ export function StatTile({
           <Icon size={20} aria-hidden />
         </span>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * A single proportion, drawn the same way everywhere it appears. The label is
+ * on the element rather than on a nearby caption, because a bar with no
+ * accessible name is invisible to a screen reader.
+ */
+export function Meter({
+  value,
+  max = 100,
+  label,
+  className,
+}: {
+  value: number
+  max?: number
+  label: string
+  className?: string
+}) {
+  const pct = max <= 0 ? 0 : Math.max(0, Math.min(100, (value / max) * 100))
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className={cn('h-3 w-full overflow-hidden rounded-full bg-canvas', className)}
+    >
+      <div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${pct}%` }} />
     </div>
   )
 }

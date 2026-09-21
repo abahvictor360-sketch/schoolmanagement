@@ -7,10 +7,13 @@ import {
   BookOpen, CalendarCheck, ClipboardList, GraduationCap, LayoutDashboard, Menu,
   MessageSquare, Settings, ShieldCheck, Users, UserSquare2, Wallet, X,
 } from 'lucide-react'
-import { cn, initials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { SchoolContext } from '@/lib/auth'
 import { SchoolSwitcher } from '@/components/school-switcher'
 import { SchoolMark } from '@/components/school-mark'
+import { AccountMenu } from '@/components/account-menu'
+import { TopSearch } from '@/components/top-search'
+import { HeaderIconLink } from '@/components/header-icon-link'
 
 type NavItem = { href: string; label: string; icon: typeof Users; roles?: string[] }
 
@@ -30,14 +33,18 @@ const NAV: NavItem[] = [
 export function AppShell({
   ctx,
   schools,
+  unreadMessages = 0,
   children,
 }: {
   ctx: SchoolContext
   schools: { id: string; name: string; role: string }[]
+  unreadMessages?: number
   children: React.ReactNode
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  const canSearch = ctx.role === 'school_admin' || ctx.isPlatformAdmin
 
   const items = NAV.filter((item) => !item.roles || item.roles.includes(ctx.role) || ctx.isPlatformAdmin)
 
@@ -121,26 +128,26 @@ export function AppShell({
             <Menu size={20} />
           </button>
 
-          <SchoolSwitcher current={ctx.school} schools={schools} />
+          {canSearch ? <TopSearch /> : null}
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-[13px] leading-tight font-medium">{ctx.fullName}</p>
-              <p className="text-[11px] leading-tight text-ink-muted capitalize">
-                {ctx.role.replace('_', ' ')}
-              </p>
-            </div>
-            <span
-              aria-hidden
-              className="grid size-10 place-items-center rounded-full bg-accent text-[13px] font-bold text-white"
-            >
-              {initials(ctx.fullName)}
-            </span>
-            <form action="/auth/signout" method="post">
-              <button type="submit" className="text-[13px] text-ink-muted underline-offset-2 hover:underline">
-                Sign out
-              </button>
-            </form>
+          <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
+            <SchoolSwitcher current={ctx.school} schools={schools} />
+            <HeaderIconLink
+              href="/messages"
+              label="Messages"
+              count={unreadMessages}
+              icon={MessageSquare}
+            />
+            <AccountMenu
+              name={ctx.fullName}
+              meta={ctx.role.replace('_', ' ')}
+              email={ctx.email}
+              links={
+                ctx.role === 'school_admin' || ctx.isPlatformAdmin
+                  ? [{ href: '/settings', label: 'School settings' }]
+                  : []
+              }
+            />
           </div>
         </header>
 

@@ -19,9 +19,9 @@ export function SchoolSwitcher({
   const router = useRouter()
   const [pending, start] = useTransition()
 
-  if (schools.length <= 1) {
-    return <p className="truncate text-sm font-medium">{current.name}</p>
-  }
+  // A single-school user needs no switcher, and the school's name is already
+  // in the sidebar — printing it again in the header was pure duplication.
+  if (schools.length <= 1) return null
 
   return (
     <label className="flex min-w-0 items-center gap-2">

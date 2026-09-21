@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { requireSchool, myMemberships } from '@/lib/auth'
 import { AppShell } from '@/components/app-shell'
 import { brandStyle } from '@/lib/branding'
+import { countUnreadThreads } from '@/lib/messaging'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireSchool()
@@ -9,7 +10,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Pupils get their own shell; the staff navigation is not theirs.
   if (ctx.role === 'student') redirect('/portal')
 
-  const memberships = await myMemberships()
+  const [memberships, unreadMessages] = await Promise.all([
+    myMemberships(),
+    countUnreadThreads(ctx.userId),
+  ])
 
   // A school that has never completed setup has no terms, so nothing else in
   // the app can work. Admins get sent to the wizard; teachers get told to wait.
@@ -22,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppShell
         ctx={ctx}
         schools={memberships.map((m) => ({ id: m.school.id, name: m.school.name, role: m.role }))}
+        unreadMessages={unreadMessages}
       >
         {children}
       </AppShell>

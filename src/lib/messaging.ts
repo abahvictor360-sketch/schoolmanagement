@@ -109,3 +109,24 @@ export async function loadThread(threadId: string, userId: string) {
     })),
   }
 }
+
+/**
+ * How many of the caller's threads have arrived since they last read them.
+ * One row per thread the caller participates in; RLS restricts it to theirs,
+ * so there is no school_id filter to forget here.
+ */
+export async function countUnreadThreads(userId: string): Promise<number> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('thread_participants')
+    .select('last_read_at, thread:message_threads!inner(last_message_at)')
+    .eq('user_id', userId)
+    .returns<{ last_read_at: string | null; thread: { last_message_at: string } | null }[]>()
+
+  return (data ?? []).filter(
+    (row) =>
+      row.thread !== null &&
+      (row.last_read_at === null ||
+        new Date(row.thread.last_message_at) > new Date(row.last_read_at)),
+  ).length
+}
