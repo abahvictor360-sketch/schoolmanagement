@@ -16,6 +16,9 @@ export type Sex = 'male' | 'female'
 export type EnrollmentStatus =
   | 'active' | 'promoted' | 'repeated' | 'withdrawn' | 'transferred_out' | 'graduated'
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'
+export type AssessmentStatus = 'draft' | 'published'
+export type CbtQuestionKind = 'single_choice' | 'multi_choice' | 'true_false'
+export type CbtAttemptStatus = 'in_progress' | 'submitted' | 'expired'
 
 type Timestamps = { created_at: string; updated_at: string }
 
@@ -67,6 +70,8 @@ export type StudentRow = Timestamps & {
   id: string; school_id: string; admission_number: string; first_name: string; last_name: string
   middle_name: string | null; date_of_birth: string | null; sex: Sex | null
   photo_path: string | null; admitted_on: string; status: StudentStatus
+  /** The login this pupil uses for the portal, when they have been invited. */
+  profile_id: string | null
 }
 export type GuardianRow = Timestamps & {
   id: string; school_id: string; full_name: string; phone: string | null
@@ -91,6 +96,70 @@ export type AttendanceEntryRow = Timestamps & {
 export type SchoolInvitationRow = {
   id: string; school_id: string; email: string; role: UserRole
   invited_by: string | null; accepted_at: string | null; created_at: string
+  /** Required when role is 'student', forbidden otherwise (check constraint). */
+  student_id: string | null
+}
+
+/* Release 2 ------------------------------------------------------------- */
+
+export type AssessmentRow = Timestamps & {
+  id: string; school_id: string; term_id: string; class_level_id: string; subject_id: string
+  component_key: string; title: string; max_score: number; held_on: string | null
+  status: AssessmentStatus; created_by: string | null
+}
+export type AssessmentScoreRow = Timestamps & {
+  id: string; school_id: string; assessment_id: string; enrollment_id: string
+  score: number; recorded_by: string | null
+}
+export type CbtTestRow = Timestamps & {
+  id: string; school_id: string; term_id: string; class_level_id: string; subject_id: string
+  assessment_id: string | null; title: string; instructions: string | null
+  duration_minutes: number; opens_at: string; closes_at: string; shuffle: boolean
+  status: AssessmentStatus; created_by: string | null
+}
+export type CbtQuestionRow = Timestamps & {
+  id: string; school_id: string; test_id: string; ordinal: number
+  prompt: string; kind: CbtQuestionKind; marks: number
+}
+export type CbtOptionRow = {
+  id: string; school_id: string; question_id: string; ordinal: number
+  label: string; created_at: string
+}
+/** No student-readable policy exists for this table, by design. */
+export type CbtAnswerKeyRow = Timestamps & {
+  question_id: string; school_id: string; option_ids: string[]
+}
+export type CbtAttemptRow = Timestamps & {
+  id: string; school_id: string; test_id: string; enrollment_id: string
+  status: CbtAttemptStatus; started_at: string; expires_at: string
+  submitted_at: string | null; score: number | null; max_score: number | null
+}
+export type CbtAnswerRow = Timestamps & {
+  id: string; school_id: string; attempt_id: string; question_id: string
+  option_ids: string[]; is_correct: boolean | null; marks_awarded: number | null
+}
+export type MessageThreadRow = Timestamps & {
+  id: string; school_id: string; subject: string
+  created_by: string | null; last_message_at: string
+}
+export type ThreadParticipantRow = {
+  id: string; school_id: string; thread_id: string; user_id: string
+  role_at_join: UserRole; last_read_at: string | null; created_at: string
+}
+export type MessageRow = Timestamps & {
+  id: string; school_id: string; thread_id: string; sender_id: string | null
+  body: string; withdrawn_at: string | null
+}
+
+export type ResultSheetRow = {
+  subject_id: string
+  subject_name: string
+  subject_code: string
+  components: Json
+  percentage: number
+  grade_label: string | null
+  remark: string | null
+  is_pass: boolean | null
 }
 
 type Table<Row, Required extends keyof Row> = {
@@ -122,6 +191,17 @@ export type Database = {
       attendance_registers: Table<AttendanceRegisterRow, 'school_id' | 'class_arm_id' | 'term_id' | 'register_date'>
       attendance_entries: Table<AttendanceEntryRow, 'school_id' | 'register_id' | 'enrollment_id' | 'status'>
       school_invitations: Table<SchoolInvitationRow, 'school_id' | 'email' | 'role'>
+      assessments: Table<AssessmentRow, 'school_id' | 'term_id' | 'class_level_id' | 'subject_id' | 'component_key' | 'title' | 'max_score'>
+      assessment_scores: Table<AssessmentScoreRow, 'school_id' | 'assessment_id' | 'enrollment_id' | 'score'>
+      cbt_tests: Table<CbtTestRow, 'school_id' | 'term_id' | 'class_level_id' | 'subject_id' | 'title' | 'duration_minutes' | 'opens_at' | 'closes_at'>
+      cbt_questions: Table<CbtQuestionRow, 'school_id' | 'test_id' | 'ordinal' | 'prompt'>
+      cbt_options: Table<CbtOptionRow, 'school_id' | 'question_id' | 'ordinal' | 'label'>
+      cbt_answer_keys: Table<CbtAnswerKeyRow, 'question_id' | 'school_id' | 'option_ids'>
+      cbt_attempts: Table<CbtAttemptRow, 'school_id' | 'test_id' | 'enrollment_id' | 'expires_at'>
+      cbt_answers: Table<CbtAnswerRow, 'school_id' | 'attempt_id' | 'question_id'>
+      message_threads: Table<MessageThreadRow, 'school_id' | 'subject'>
+      thread_participants: Table<ThreadParticipantRow, 'school_id' | 'thread_id' | 'user_id' | 'role_at_join'>
+      messages: Table<MessageRow, 'school_id' | 'thread_id' | 'body'>
     }
     Views: Record<never, never>
     Functions: {
@@ -140,6 +220,19 @@ export type Database = {
       save_attendance: {
         Args: { p_school_id: string; p_class_arm_id: string; p_term_id: string; p_date: string; p_entries: Json }
         Returns: string
+      }
+      result_sheet: { Args: { p_enrollment: string }; Returns: ResultSheetRow[] }
+      start_cbt_attempt: { Args: { p_test: string }; Returns: string }
+      save_cbt_answers: { Args: { p_attempt: string; p_answers: Json }; Returns: number }
+      submit_cbt_attempt: { Args: { p_attempt: string; p_answers?: Json }; Returns: Json }
+      start_thread: {
+        Args: { p_school_id: string; p_subject: string; p_recipient: string; p_body: string }
+        Returns: string
+      }
+      post_message: { Args: { p_thread: string; p_body: string }; Returns: string }
+      messageable_staff: {
+        Args: { p_school_id: string }
+        Returns: { user_id: string; full_name: string; designation: string | null }[]
       }
     }
     Enums: Record<never, never>
