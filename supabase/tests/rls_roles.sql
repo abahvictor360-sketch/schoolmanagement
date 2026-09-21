@@ -60,3 +60,37 @@ begin
     raise exception 'ROLE FAILURES: %', array_to_string(failures, ' | ');
   end if;
 end $$;
+
+-- Deny by default applies to functions too. PostgREST exposes everything in
+-- the public schema at /rest/v1/rpc/<name>, and Postgres grants EXECUTE to
+-- PUBLIC on a new function, so an RPC is reachable without signing in unless
+-- that grant is revoked.
+do $$
+declare fn text; failures text[] := '{}';
+begin
+  foreach fn in array array['create_school','enroll_students','rollover_term','save_attendance',
+                            'result_sheet','start_cbt_attempt','save_cbt_answers',
+                            'submit_cbt_attempt','start_thread','post_message',
+                            'messageable_staff'] loop
+    if exists (
+      select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = fn
+        and has_function_privilege('anon', p.oid, 'EXECUTE')
+    ) then
+      failures := failures || format('anon may execute public.%s', fn);
+    end if;
+    if not exists (
+      select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = fn
+        and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+    ) then
+      failures := failures || format('authenticated may NOT execute public.%s', fn);
+    end if;
+  end loop;
+
+  if array_length(failures, 1) is null then
+    raise notice 'RPC execute grants: correct';
+  else
+    raise exception 'RPC GRANT FAILURES: %', array_to_string(failures, ' | ');
+  end if;
+end $$;
