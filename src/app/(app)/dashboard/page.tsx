@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { CalendarCheck, GraduationCap, UserSquare2, Users, Wallet } from 'lucide-react'
+import { CalendarCheck, GraduationCap, UserSquare2, Users } from 'lucide-react'
 import { requireSchool } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { money } from '@/lib/money'
@@ -78,7 +78,7 @@ export default async function DashboardPage() {
           value={students.count ?? 0}
           tint="violet"
           icon={GraduationCap}
-          hint={`${enrolled.count ?? 0} enrolled this term`}
+          hint={`${enrolled.count ?? 0} enrolled`}
         />
         <StatTile label="Staff" value={staff.count ?? 0} tint="mint" icon={UserSquare2} />
         <StatTile label="Class arms" value={armsCount} tint="sky" icon={Users} />
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <StatTile label="Billed" value={money(ctx.config, billed)} tint="violet" />
               <StatTile label="Collected" value={money(ctx.config, collected)} tint="mint" />
-              <StatTile label="Outstanding" value={money(ctx.config, outstanding)} tint="peach" icon={Wallet} />
+              <StatTile label="Outstanding" value={money(ctx.config, outstanding)} tint="peach" />
             </div>
 
             {/* A single honest bar: what has come in against what was billed. */}
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Attendance today</CardTitle>

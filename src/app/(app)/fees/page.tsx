@@ -106,7 +106,7 @@ export default async function FeesPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <Card>
             <CardHeader>

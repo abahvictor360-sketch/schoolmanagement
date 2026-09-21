@@ -40,15 +40,29 @@ export function StatTile({
 }) {
   const t = tints[tint]
   return (
-    <div className={cn('flex items-center justify-between gap-3 rounded-[18px] px-4 py-4', t.bg)}>
+    // h-full so tiles in a grid row match height whether or not they carry a
+    // hint; min-h keeps a lone tile from collapsing.
+    <div
+      className={cn(
+        'flex h-full min-h-[92px] items-start justify-between gap-2 rounded-[18px] px-4 py-3.5',
+        t.bg,
+      )}
+    >
       <div className="min-w-0">
-        <p className="text-[13px] font-medium text-ink-muted">{label}</p>
+        <p className="text-[12px] font-medium text-ink-muted">{label}</p>
         <p className="mt-0.5 text-2xl font-bold tracking-[-0.02em] tabular-nums">{value}</p>
-        {hint ? <p className="mt-0.5 text-[12px] text-ink-muted">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 line-clamp-1 text-[12px] text-ink-muted">{hint}</p> : null}
       </div>
+      {/* Hidden at 360px: a 44px chip costs a third of the tile's width there,
+          which pushes the label into a three-line wrap. */}
       {Icon ? (
-        <span className={cn('grid size-11 shrink-0 place-items-center rounded-2xl bg-surface/70', t.icon)}>
-          <Icon size={22} aria-hidden />
+        <span
+          className={cn(
+            'hidden size-10 shrink-0 place-items-center rounded-2xl bg-surface/70 sm:grid',
+            t.icon,
+          )}
+        >
+          <Icon size={20} aria-hidden />
         </span>
       ) : null}
     </div>
