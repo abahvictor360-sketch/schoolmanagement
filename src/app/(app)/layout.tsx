@@ -4,6 +4,10 @@ import { AppShell } from '@/components/app-shell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireSchool()
+
+  // Pupils get their own shell; the staff navigation is not theirs.
+  if (ctx.role === 'student') redirect('/portal')
+
   const memberships = await myMemberships()
 
   // A school that has never completed setup has no terms, so nothing else in

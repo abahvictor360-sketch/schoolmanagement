@@ -20,9 +20,25 @@ full brief.
    permissive default. A missing policy must return nothing, never everything.
    The `service_role` key is never used in a request-handling path — only in
    migrations, seeds and audited background jobs.
-5. **Scope discipline.** Release 1 is milestones 1–6 in SPEC.md §7. Everything
-   in §8 (grading, fees, portals, messaging, timetabling, analytics, billing) is
-   out of scope. Adjacent and cheap is still out of scope.
+5. **Scope discipline.** Release 1 is milestones 1–6 in SPEC.md §7 and is
+   complete. **Release 2 was opened deliberately by the owner** and covers the
+   student portal, assessments and results, CBT, and messaging — all of which
+   SPEC.md §8 had excluded from R1. Everything still in §8 (fees and invoicing,
+   guardian portal, SMS, timetabling, library, transport, hostel, analytics
+   dashboards, native apps, billing) remains out of scope. Adjacent and cheap
+   is still out of scope.
+
+6. **A pupil is a member, so "member" is not a permission.** `app.can_read()`
+   means *staff* (school_admin, teacher, bursar). `app.can_read_reference()` is
+   the wider one for the school, calendar, class structure and subject list.
+   Anything a pupil may see of their own is an explicit policy naming
+   `app.my_student_id()` or `app.owns_enrollment()`. Never widen a read policy
+   back to `app.is_member()` without checking what it hands a child.
+
+7. **The CBT answer key is not a column.** RLS is row-level, so correctness
+   lives in `cbt_answer_keys`, which has no student-readable policy at all.
+   Marking runs in a security definer function. Never add an `is_correct`
+   column to anything a candidate can select.
 
 ## Order of work within a feature
 
@@ -76,5 +92,8 @@ npm run typecheck   # tsc --noEmit
 npm test            # vitest unit suite
 psql "$DATABASE_URL" -f supabase/tests/rls_cross_tenant.sql   # isolation suite
 psql "$DATABASE_URL" -f supabase/tests/rls_roles.sql          # role separation
+psql "$DATABASE_URL" -f supabase/tests/rls_student.sql        # a pupil sees only themselves
+psql "$DATABASE_URL" -f supabase/tests/rls_student_academics.sql  # answer key stays hidden
+psql "$DATABASE_URL" -f supabase/tests/rls_messaging.sql      # who may write to whom
 psql "$DATABASE_URL" -f supabase/tests/auth_seed_sanity.sql   # seeded users are loginable
 ```

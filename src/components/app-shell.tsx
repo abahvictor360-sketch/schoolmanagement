@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
-  BookOpen, CalendarCheck, GraduationCap, LayoutDashboard, Menu, Settings,
-  ShieldCheck, Users, UserSquare2, X,
+  BookOpen, CalendarCheck, ClipboardList, GraduationCap, LayoutDashboard, Menu,
+  MessageSquare, Settings, ShieldCheck, Users, UserSquare2, X,
 } from 'lucide-react'
 import { cn, initials } from '@/lib/utils'
 import type { SchoolContext } from '@/lib/auth'
@@ -16,6 +16,8 @@ type NavItem = { href: string; label: string; icon: typeof Users; roles?: string
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck },
+  { href: '/assessments', label: 'Assessments', icon: ClipboardList },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/students', label: 'Students', icon: GraduationCap, roles: ['school_admin'] },
   { href: '/guardians', label: 'Guardians', icon: Users, roles: ['school_admin'] },
   { href: '/staff', label: 'Staff', icon: UserSquare2, roles: ['school_admin'] },

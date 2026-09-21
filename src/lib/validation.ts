@@ -175,3 +175,68 @@ export const staffImportRow = z.object({
 export type StudentInput = z.infer<typeof studentSchema>
 export type GuardianInput = z.infer<typeof guardianSchema>
 export type StaffInput = z.infer<typeof staffSchema>
+
+/* Release 2 --------------------------------------------------------------
+   These live here rather than beside their server actions because a
+   'use server' module may only export async functions. */
+
+export const assessmentSchema = z.object({
+  term_id: z.string().uuid('Choose a term'),
+  class_level_id: z.string().uuid('Choose a class level'),
+  subject_id: z.string().uuid('Choose a subject'),
+  component_key: z.string().trim().min(1, 'Choose an assessment component').max(24),
+  title: trimmed(2, 120),
+  max_score: z.coerce.number().positive('Must be more than zero').max(1000),
+  held_on: optionalDate(),
+})
+
+export const cbtTestSchema = z.object({
+  term_id: z.string().uuid('Choose a term'),
+  class_level_id: z.string().uuid('Choose a class level'),
+  subject_id: z.string().uuid('Choose a subject'),
+  assessment_id: z.union([z.literal(''), z.string().uuid()]).optional().transform((v) => v || null),
+  title: trimmed(2, 120),
+  instructions: optionalText(2000),
+  duration_minutes: z.coerce.number().int().min(1).max(600),
+  opens_at: z.string().min(1, 'When does it open?'),
+  closes_at: z.string().min(1, 'When does it close?'),
+})
+
+export const cbtQuestionSchema = z
+  .object({
+    test_id: z.string().uuid(),
+    prompt: trimmed(1, 2000),
+    kind: z.enum(['single_choice', 'multi_choice', 'true_false']),
+    marks: z.coerce.number().positive().max(100),
+    options: z.array(trimmed(1, 500)).min(2, 'A question needs at least two options').max(8),
+    correct: z.array(z.number().int().min(0)).min(1, 'Mark at least one option correct'),
+  })
+  .refine((v) => v.correct.every((i) => i < v.options.length), {
+    message: 'A correct answer points at an option that does not exist',
+    path: ['correct'],
+  })
+  .refine((v) => v.kind === 'multi_choice' || v.correct.length === 1, {
+    message: 'Only a multiple-answer question may have more than one correct option',
+    path: ['correct'],
+  })
+
+export const startThreadSchema = z.object({
+  recipient_id: z.string().uuid('Choose somebody to write to'),
+  subject: trimmed(1, 160),
+  body: trimmed(1, 4000),
+})
+
+export const replySchema = z.object({
+  thread_id: z.string().uuid(),
+  body: trimmed(1, 4000),
+})
+
+export const cbtAnswersSchema = z.object({
+  attempt_id: z.string().uuid(),
+  answers: z
+    .array(z.object({
+      question_id: z.string().uuid(),
+      option_ids: z.array(z.string().uuid()).max(20),
+    }))
+    .max(500),
+})

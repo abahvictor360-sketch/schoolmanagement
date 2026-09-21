@@ -9,6 +9,7 @@ import {
 import { StudentForm } from '@/components/students/student-form'
 import { StudentPhoto } from '@/components/students/student-photo'
 import { GuardianLinker } from '@/components/students/guardian-linker'
+import { PortalInvite } from '@/components/students/portal-invite'
 import { PrintButton } from '@/components/print-button'
 import type { StudentRow } from '@/lib/database.types'
 
@@ -43,7 +44,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
   if (!student) notFound()
 
-  const [{ data: enrollments }, { data: links }, { data: guardians }] = await Promise.all([
+  const [{ data: enrollments }, { data: links }, { data: guardians }, { data: invite }] = await Promise.all([
     supabase
       .from('enrollments')
       .select(
@@ -65,6 +66,12 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
       .eq('school_id', ctx.school.id)
       .order('full_name')
       .limit(500),
+    supabase
+      .from('school_invitations')
+      .select('email, accepted_at')
+      .eq('school_id', ctx.school.id)
+      .eq('student_id', id)
+      .maybeSingle<{ email: string; accepted_at: string | null }>(),
   ])
 
   const photoUrl = student.photo_path
@@ -98,6 +105,19 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardBody>
               <StudentPhoto studentId={student.id} url={photoUrl} />
+            </CardBody>
+          </Card>
+
+          <Card className="no-print">
+            <CardHeader>
+              <CardTitle>Student portal</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <PortalInvite
+                studentId={student.id}
+                linked={Boolean(student.profile_id)}
+                invitedEmail={invite && !invite.accepted_at ? invite.email : null}
+              />
             </CardBody>
           </Card>
 
