@@ -8,6 +8,10 @@ Release 1 ships school administrators and teachers: school setup, student,
 guardian and staff records with CSV import, the enrollment spine, and
 attendance.
 
+Release 2 adds pupils: a student portal, assessments and results with
+printable report cards, computer-based tests, and messaging between pupils and
+staff.
+
 ## Stack
 
 Next.js (App Router, TypeScript strict) · Supabase Postgres, Auth and Storage ·
@@ -51,6 +55,42 @@ promotion rule, currency, locale, timezone and date format live in
 `src/lib/academic-config.ts`. A new country is a new preset entry, not a branch.
 Nothing in application logic assumes three terms, a 40/60 split, or A1–F9.
 
+## What a pupil can see
+
+Granting a student a login is the one change in this codebase that could turn
+the whole school inside out, because every read policy was built on "any
+active member of this school" and a pupil is a member. So `app.can_read()` now
+means *staff*; reference data (the school, its calendar, class structure and
+subject list) moved to `app.can_read_reference()`, which any member may use;
+and everything a pupil sees of their own is an explicit policy naming
+`app.my_student_id()` or `app.owns_enrollment()`.
+
+A pupil can read their own record, their own enrollments, their own attendance
+marks, the subjects offered to their class level, their own published results,
+papers set for their class, and threads they take part in. They can read
+nothing about another pupil — not even a classmate's name — and no staff or
+guardian record at all. The portal is read-only except for sitting a test and
+sending a message.
+
+### The CBT answer key
+
+A candidate has to read the options to answer, and RLS is row-level rather
+than column-level, so an `is_correct` column would be one `select *` away from
+the person sitting the paper. Correctness therefore lives in
+`cbt_answer_keys`, a table with no student-readable policy at all. Marking
+runs inside a `security definer` function that can see the key even though the
+caller never can, and the clock is set server-side when an attempt starts, so
+reloading buys no extra minutes.
+
+### Messaging a child
+
+A pupil may open a thread with staff of their own school and with nobody else,
+enforced in `start_thread()` rather than in the UI. A sent message cannot be
+edited; it can be withdrawn from view by its sender, but the row stays and the
+withdrawal cannot be reversed. The school's administrators can read any thread
+in their school, because this is a safeguarding record rather than private
+mail.
+
 ## The enrollment spine
 
 A student is never "in JSS 2". `enrollments` binds a student to a class arm, in
@@ -78,6 +118,8 @@ visible rather than described. Every seeded account uses the password
 | `teacher@greenfield.test` | Greenfield teacher | Attendance only — proves the role boundary |
 | `admin@brightstar.test` | Brightstar College admin | The other tenant, to check nothing bleeds across |
 | `teacher@brightstar.test` | Brightstar teacher | Teacher view on the second tenant |
+| `student@greenfield.test` | Greenfield pupil | The portal: own attendance, results, a live CBT paper, messaging |
+| `student@brightstar.test` | Brightstar pupil | The portal on the second tenant |
 
 A useful ten-minute pass: sign in as each administrator in turn and note that
 both see 240 students, 12 staff and 80 guardians, and neither sees the other's
@@ -135,14 +177,21 @@ psql "$DATABASE_URL" -f supabase/seed/demo.sql
 ```bash
 npm test                                                     # unit suite
 psql "$DATABASE_URL" -f supabase/tests/rls_cross_tenant.sql  # isolation
-psql "$DATABASE_URL" -f supabase/tests/rls_roles.sql         # role separation
+psql "$DATABASE_URL" -f supabase/tests/rls_roles.sql         # role separation + RPC grants
+psql "$DATABASE_URL" -f supabase/tests/rls_student.sql       # a pupil sees only themselves
+psql "$DATABASE_URL" -f supabase/tests/rls_student_academics.sql  # the answer key stays hidden
+psql "$DATABASE_URL" -f supabase/tests/rls_messaging.sql     # who may write to whom
+psql "$DATABASE_URL" -f supabase/tests/auth_seed_sanity.sql  # seeded users can sign in
 ```
 
 The cross-tenant suite signs in as a Greenfield administrator and proves they
 cannot read, update, delete or insert Brightstar rows on any table — including
 through joins, aggregate counts and direct foreign-key probing. The role suite
-proves an anonymous caller reads nothing at all, and that a teacher can take a
-register but cannot edit records or read the audit log.
+proves an anonymous caller reads nothing at all, that a teacher can take a
+register but cannot edit records or read the audit log, and that no RPC is
+callable without signing in. The student suites prove a pupil sees exactly one
+student row, cannot read an answer key or write one, and cannot message
+another pupil.
 
 ## Environment
 
