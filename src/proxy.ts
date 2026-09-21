@@ -4,7 +4,7 @@ import { slugFromHost } from '@/lib/tenant'
 
 const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/_next', '/favicon.ico']
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(

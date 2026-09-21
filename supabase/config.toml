@@ -1,0 +1,36 @@
+project_id = "schoolhub"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Pilot schools invite staff by email address; confirmation is handled by the
+# invitation record, so a local stack does not need an SMTP round trip.
+enable_confirmations = false
+
+# Stamps memberships into the access token for role-aware UI. RLS never trusts
+# these claims — policies re-read the memberships table.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/app/custom_access_token_hook"
+
+[storage]
+enabled = true
+file_size_limit = "5MiB"
