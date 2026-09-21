@@ -59,6 +59,33 @@ entries reference the enrollment, not the student, which is what makes history,
 repeats, transfers and mid-term movement come out right. Rollover writes fresh
 rows in the next term and closes the old ones; nothing is deleted.
 
+## Deployed
+
+| | |
+|---|---|
+| App | https://schoolhub-abahvictor360-3017s-projects.vercel.app |
+| Supabase project | `rxzecdhzyrsoylaqqzjg` (eu-west-1) |
+| Functions region | `fra1` — closest to the first market |
+
+The database is seeded with two independent schools so the isolation story is
+visible rather than described. Demo password for all four accounts is
+`demo-password-1`.
+
+| Account | Role |
+|---|---|
+| `platform@schoolhub.test` | platform admin — can create schools |
+| `admin@greenfield.test` | Greenfield Academy administrator |
+| `teacher@greenfield.test` | Greenfield teacher — attendance only |
+| `admin@brightstar.test` | Brightstar College administrator |
+
+Sign in as the two administrators in turn: each sees 240 students, 12 staff and
+80 guardians, and neither can see the other's, because RLS — not the UI —
+decides what a query returns.
+
+**Before a pilot:** rotate these demo accounts out, point
+`NEXT_PUBLIC_ROOT_DOMAIN` at a real apex domain with wildcard DNS so each school
+gets its own subdomain, and turn on Supabase point-in-time recovery.
+
 ## Getting started
 
 ```bash
