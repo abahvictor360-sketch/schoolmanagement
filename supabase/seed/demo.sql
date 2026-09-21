@@ -38,7 +38,9 @@ from (values
   ('22222222-2222-4222-8222-222222222222'::uuid, 'admin@greenfield.test',    'Adaeze Obi'),
   ('33333333-3333-4333-8333-333333333333'::uuid, 'teacher@greenfield.test',  'Musa Bello'),
   ('44444444-4444-4444-8444-444444444444'::uuid, 'admin@brightstar.test',    'Ifeoma Eze'),
-  ('55555555-5555-4555-8555-555555555555'::uuid, 'teacher@brightstar.test',  'Fatima Sani')
+  ('55555555-5555-4555-8555-555555555555'::uuid, 'teacher@brightstar.test',  'Fatima Sani'),
+  ('66666666-6666-4666-8666-666666666666'::uuid, 'student@greenfield.test',  'Greenfield Pupil'),
+  ('77777777-7777-4777-8777-777777777777'::uuid, 'student@brightstar.test',  'Brightstar Pupil')
 ) as u(id, email, full_name)
 on conflict (id) do nothing;
 
@@ -107,7 +109,9 @@ insert into public.memberships (user_id, school_id, role) values
   ('22222222-2222-4222-8222-222222222222', 'aaaaaaaa-0000-4000-8000-000000000001', 'school_admin'),
   ('33333333-3333-4333-8333-333333333333', 'aaaaaaaa-0000-4000-8000-000000000001', 'teacher'),
   ('44444444-4444-4444-8444-444444444444', 'bbbbbbbb-0000-4000-8000-000000000002', 'school_admin'),
-  ('55555555-5555-4555-8555-555555555555', 'bbbbbbbb-0000-4000-8000-000000000002', 'teacher')
+  ('55555555-5555-4555-8555-555555555555', 'bbbbbbbb-0000-4000-8000-000000000002', 'teacher'),
+  ('66666666-6666-4666-8666-666666666666', 'aaaaaaaa-0000-4000-8000-000000000001', 'student'),
+  ('77777777-7777-4777-8777-777777777777', 'bbbbbbbb-0000-4000-8000-000000000002', 'student')
 on conflict (user_id, school_id) do nothing;
 
 -- -------------------------------------------------- calendar and structure
@@ -204,6 +208,21 @@ join (
 ) gd on gd.school_id = st.school_id and gd.rn = st.rn
 where st.rn <= 80
 on conflict (student_id, guardian_id) do nothing;
+
+-- Give each student login a pupil record to be. Normally this happens when the
+-- pupil redeems an invitation; here it is wired up directly.
+with ranked as (
+  select id, school_id,
+         row_number() over (partition by school_id order by admission_number) as rn
+  from public.students
+)
+update public.students s set profile_id = v.uid
+from ranked r
+join (values
+  ('aaaaaaaa-0000-4000-8000-000000000001'::uuid, '66666666-6666-4666-8666-666666666666'::uuid),
+  ('bbbbbbbb-0000-4000-8000-000000000002'::uuid, '77777777-7777-4777-8777-777777777777'::uuid)
+) as v(school_id, uid) on v.school_id = r.school_id
+where s.id = r.id and r.rn = 1 and s.profile_id is null;
 
 -- -------------------------------------------------------------- enrollment
 insert into public.enrollments (school_id, student_id, class_arm_id, term_id, status)
