@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { requireRole, requireSchool } from '@/lib/auth'
 import { describeDbError, failed, parse, succeeded, type ActionResult } from '@/lib/action-result'
 import {
-  feeStructureSchema, offlinePaymentSchema, paymentSettingsSchema, startPaymentSchema,
+  brandColorSchema, feeStructureSchema, offlinePaymentSchema, paymentSettingsSchema,
+  startPaymentSchema,
 } from '@/lib/validation'
 import {
   fromMinorUnits, initialiseCharge, PROVIDERS, providerReadiness, toMinorUnits,
@@ -289,6 +290,26 @@ export async function setSchoolLogo(path: string): Promise<ActionResult> {
   const url = `${data.publicUrl}?v=${Date.now()}`
 
   const { error } = await supabase.from('schools').update({ logo_url: url }).eq('id', ctx.school.id)
+  if (error) return failed(describeDbError(error))
+
+  revalidatePath('/', 'layout')
+  return succeeded()
+}
+
+/**
+ * Sets the school's colour. Validated as a hex here and again by a check
+ * constraint in the database, because it is rendered into a style attribute.
+ */
+export async function setBrandColor(input: unknown): Promise<ActionResult> {
+  const parsed = parse(brandColorSchema, input)
+  if (!parsed.ok) return parsed.result
+
+  const ctx = await requireRole('school_admin')
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('schools')
+    .update({ brand_color: parsed.value.brand_color })
+    .eq('id', ctx.school.id)
   if (error) return failed(describeDbError(error))
 
   revalidatePath('/', 'layout')

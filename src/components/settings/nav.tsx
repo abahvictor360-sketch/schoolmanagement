@@ -27,7 +27,7 @@ export function SettingsNav() {
             aria-current={active ? 'page' : undefined}
             className={cn(
               '-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium',
-              active ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink',
+              active ? 'border-accent text-accent-on-soft' : 'border-transparent text-ink-muted hover:text-ink',
             )}
           >
             {tab.label}

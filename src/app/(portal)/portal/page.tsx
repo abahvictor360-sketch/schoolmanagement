@@ -98,7 +98,7 @@ export default async function PortalHome() {
         <Card>
           <CardHeader>
             <CardTitle>Recent results</CardTitle>
-            <Link href="/portal/results" className="text-[13px] font-medium text-accent underline underline-offset-2">
+            <Link href="/portal/results" className="text-[13px] font-medium text-accent-on-soft underline underline-offset-2">
               See all
             </Link>
           </CardHeader>
@@ -125,7 +125,7 @@ export default async function PortalHome() {
         <Card>
           <CardHeader>
             <CardTitle>Messages</CardTitle>
-            <Link href="/portal/messages" className="text-[13px] font-medium text-accent underline underline-offset-2">
+            <Link href="/portal/messages" className="text-[13px] font-medium text-accent-on-soft underline underline-offset-2">
               Open
             </Link>
           </CardHeader>

@@ -88,7 +88,10 @@ export function CardBody({ className, ...props }: React.ComponentProps<'div'>) {
 
 /* Button ----------------------------------------------------------------- */
 const buttonStyles = {
-  primary: 'bg-accent text-white shadow-[0_6px_16px_-8px_var(--color-accent)] hover:bg-accent-strong disabled:opacity-50',
+  // text colour comes from the brand's contrast-checked foreground, so a pale
+  // school colour gets dark text instead of unreadable white.
+  primary:
+    'bg-accent text-accent-ink shadow-[0_6px_16px_-8px_var(--color-accent)] hover:bg-accent-strong disabled:opacity-50',
   secondary: 'bg-canvas text-ink hover:bg-accent-soft disabled:text-ink-muted',
   ghost: 'text-ink-muted hover:bg-canvas hover:text-ink',
   danger: 'bg-danger text-white hover:brightness-95',
@@ -230,7 +233,7 @@ export function Field({
 /* Badge ------------------------------------------------------------------ */
 const badgeStyles = {
   neutral: 'bg-canvas text-ink-muted',
-  accent: 'bg-tint-violet text-accent',
+  accent: 'bg-accent-soft text-accent-on-soft',
   positive: 'bg-tint-mint text-positive',
   warn: 'bg-tint-lemon text-warn',
   danger: 'bg-tint-rose text-danger',

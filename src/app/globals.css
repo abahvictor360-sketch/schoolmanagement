@@ -19,6 +19,11 @@
   --color-accent: #7c3aed;
   --color-accent-strong: #6d28d9;
   --color-accent-soft: #f1ecfe;
+  /* Foreground on --color-accent, and on --color-accent-soft. Both are
+     recomputed per school in brandStyle(), because a pale brand colour cannot
+     carry white text nor sit on its own tint. */
+  --color-accent-ink: #ffffff;
+  --color-accent-on-soft: #6d28d9;
 
   --color-positive: #12a474;
   --color-warn: #e08700;

@@ -189,7 +189,7 @@ export function ExamPaper({
                           className={cn(
                             'flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
                             on
-                              ? 'border-accent bg-accent-soft font-medium text-accent'
+                              ? 'border-accent bg-accent-soft font-medium text-accent-on-soft'
                               : 'border-line hover:bg-canvas',
                           )}
                         >

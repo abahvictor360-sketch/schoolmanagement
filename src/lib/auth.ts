@@ -11,7 +11,7 @@ export type SchoolContext = {
   email: string
   fullName: string
   isPlatformAdmin: boolean
-  school: { id: string; name: string; slug: string; logo_url: string | null }
+  school: { id: string; name: string; slug: string; logo_url: string | null; brand_color: string | null }
   role: UserRole
   config: AcademicConfig
   onboarded: boolean
@@ -34,10 +34,17 @@ export const myMemberships = cache(async () => {
   const supabase = await createClient()
   const { data } = await supabase
     .from('memberships')
-    .select('role, status, school:schools!inner(id, name, slug, logo_url, status)')
+    .select('role, status, school:schools!inner(id, name, slug, logo_url, brand_color, status)')
     .eq('status', 'active')
     .returns<
-      { role: UserRole; status: string; school: { id: string; name: string; slug: string; logo_url: string | null; status: string } }[]
+      {
+      role: UserRole
+      status: string
+      school: {
+        id: string; name: string; slug: string
+        logo_url: string | null; brand_color: string | null; status: string
+      }
+    }[]
     >()
   return (data ?? []).filter((m) => m.school.status === 'active')
 })
@@ -94,6 +101,7 @@ export const requireSchool = cache(async (): Promise<SchoolContext> => {
       name: match.school.name,
       slug: match.school.slug,
       logo_url: match.school.logo_url,
+      brand_color: match.school.brand_color,
     },
     role: match.role,
     config: parsed.success ? parsed.data : presetConfig(settings?.preset_key ?? 'NG'),

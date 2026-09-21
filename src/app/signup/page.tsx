@@ -22,7 +22,7 @@ export default async function SignUpPage() {
       <AuthForm mode="signup" next="/dashboard" />
       <p className="text-sm text-ink-muted">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-accent underline underline-offset-2">
+        <Link href="/login" className="font-medium text-accent-on-soft underline underline-offset-2">
           Sign in
         </Link>
       </p>

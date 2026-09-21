@@ -111,7 +111,7 @@ export function CsvImport<S extends z.ZodType>({
             <a
               href={`data:text/csv;charset=utf-8,${encodeURIComponent(sampleCsv)}`}
               download="template.csv"
-              className="text-[13px] font-medium text-accent underline underline-offset-2"
+              className="text-[13px] font-medium text-accent-on-soft underline underline-offset-2"
             >
               Download template
             </a>

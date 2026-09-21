@@ -47,7 +47,7 @@ export function PortalShell({
               className={cn(
                 'flex h-12 items-center gap-3 rounded-2xl px-3.5 text-[14px] transition-colors',
                 isActive(href)
-                  ? 'bg-accent-soft font-semibold text-accent'
+                  ? 'bg-accent-soft font-semibold text-accent-on-soft'
                   : 'font-medium text-ink-muted hover:bg-canvas hover:text-ink',
               )}
             >
@@ -108,7 +108,7 @@ export function PortalShell({
             aria-current={isActive(href) ? 'page' : undefined}
             className={cn(
               'flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-medium',
-              isActive(href) ? 'text-accent' : 'text-ink-muted',
+              isActive(href) ? 'text-accent-on-soft' : 'text-ink-muted',
             )}
           >
             <Icon aria-hidden size={18} />

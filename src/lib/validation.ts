@@ -287,3 +287,11 @@ export const offlinePaymentSchema = z.object({
   payer_name: optionalText(160),
   note: optionalText(400),
 })
+
+export const brandColorSchema = z.object({
+  // Null restores the platform default. Anything else must be a plain hex:
+  // this value ends up in a style attribute, so the format is a boundary.
+  brand_color: z
+    .union([z.literal(''), z.string().trim().toLowerCase().regex(/^#[0-9a-f]{6}$/, 'Use a six-digit hex colour, like #1d4ed8')])
+    .transform((v) => v || null),
+})

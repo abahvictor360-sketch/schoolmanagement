@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-sm text-ink-muted">
         This page does not exist, or it belongs to a school you are not a member of.
       </p>
-      <Link href="/dashboard" className="text-sm font-medium text-accent underline underline-offset-2">
+      <Link href="/dashboard" className="text-sm font-medium text-accent-on-soft underline underline-offset-2">
         Back to the dashboard
       </Link>
     </main>

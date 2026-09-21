@@ -24,7 +24,7 @@ export default async function LoginPage({
       <AuthForm mode="signin" next={next ?? '/dashboard'} />
       <p className="text-sm text-ink-muted">
         Been invited but never signed in?{' '}
-        <Link href="/signup" className="font-medium text-accent underline underline-offset-2">
+        <Link href="/signup" className="font-medium text-accent-on-soft underline underline-offset-2">
           Create your account
         </Link>
       </p>

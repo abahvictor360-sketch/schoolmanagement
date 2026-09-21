@@ -101,7 +101,7 @@ export default async function DashboardPage() {
               </Badge>
               <Link
                 href="/fees"
-                className="text-[13px] font-semibold text-accent underline underline-offset-2"
+                className="text-[13px] font-semibold text-accent-on-soft underline underline-offset-2"
               >
                 Open
               </Link>
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
             </p>
             <Link
               href="/attendance"
-              className="mt-3 inline-block text-sm font-semibold text-accent underline underline-offset-2"
+              className="mt-3 inline-block text-sm font-semibold text-accent-on-soft underline underline-offset-2"
             >
               Take a register
             </Link>

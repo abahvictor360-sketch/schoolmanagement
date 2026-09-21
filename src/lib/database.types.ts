@@ -30,6 +30,8 @@ type Timestamps = { created_at: string; updated_at: string }
 export type SchoolRow = Timestamps & {
   id: string; name: string; slug: string; logo_url: string | null
   address: string | null; phone: string | null; email: string | null; status: SchoolStatus
+  /** Six-digit hex, or null for the platform default. */
+  brand_color: string | null
 }
 export type SchoolSettingsRow = Timestamps & {
   school_id: string; preset_key: string; academic_config: Json; onboarded_at: string | null
