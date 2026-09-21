@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { credentialsSchema, signUpSchema } from '@/lib/validation'
-import { Button, ErrorNote, Field, Input } from '@/components/ui/primitives'
+import { Button, ErrorNote, Field, Input, PasswordInput } from '@/components/ui/primitives'
 
 type Props = { mode: 'signin' | 'signup'; next: string }
 
@@ -71,8 +71,7 @@ export function AuthForm({ mode, next }: Props) {
       </Field>
 
       <Field label="Password" error={errors.password?.message}>
-        <Input
-          type="password"
+        <PasswordInput
           autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           aria-invalid={Boolean(errors.password)}
           {...register('password')}

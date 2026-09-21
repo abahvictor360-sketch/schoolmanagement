@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /* Card ------------------------------------------------------------------- */
@@ -77,6 +78,43 @@ export const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'in
     )
   },
 )
+
+/**
+ * Password field with a reveal toggle. Typing a password blind on a phone
+ * keyboard is the most common reason a correct password gets typed wrong, so
+ * the toggle is a real button: focusable, and it announces its state rather
+ * than relying on the icon alone.
+ */
+export const PasswordInput = React.forwardRef<
+  HTMLInputElement,
+  Omit<React.ComponentProps<'input'>, 'type'>
+>(function PasswordInput({ className, ...props }, ref) {
+  const [visible, setVisible] = React.useState(false)
+
+  return (
+    <div className="relative">
+      <Input
+        ref={ref}
+        type={visible ? 'text' : 'password'}
+        className={cn('pr-11', className)}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((shown) => !shown)}
+        aria-pressed={visible}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        title={visible ? 'Hide password' : 'Show password'}
+        className={cn(
+          'absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-lg',
+          'text-ink-muted transition-colors hover:text-ink',
+        )}
+      >
+        {visible ? <EyeOff aria-hidden size={18} /> : <Eye aria-hidden size={18} />}
+      </button>
+    </div>
+  )
+})
 
 export const Select = React.forwardRef<HTMLSelectElement, React.ComponentProps<'select'>>(
   function Select({ className, ...props }, ref) {
