@@ -33,6 +33,8 @@ jobs:
         run: supabase db start
       - name: Seed two independent schools
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/seed/demo.sql
+      - name: Seeded auth rows are shaped the way GoTrue expects
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/auth_seed_sanity.sql
       - name: Cross-tenant isolation
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/rls_cross_tenant.sql
       - name: Role separation

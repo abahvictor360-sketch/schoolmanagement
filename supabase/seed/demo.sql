@@ -11,15 +11,28 @@ begin;
 -- password anyone should reuse, belongs in a file that lives in git. To give a
 -- real person platform-admin access, sign them up through /signup and then run
 -- the one-liner under "Promoting a real account" in the README.
+-- Two things a hand-written user INSERT has to do that signing up through the
+-- API does for you, and which both surface at sign-in as the unhelpful
+-- "Database error querying schema":
+--
+--   1. confirmation_token, recovery_token, email_change_token_new and
+--      email_change have no column default. GoTrue scans them into a Go
+--      `string`, not a `*string`, so a NULL aborts the whole row scan. They
+--      must be set to '' explicitly.
+--   2. A password user needs a matching row in auth.identities. Without it the
+--      account exists but has no linked email identity.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
 )
 select
   '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
   crypt('SchoolHub#2026', gen_salt('bf')), now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  jsonb_build_object('full_name', u.full_name), now(), now()
+  jsonb_build_object('full_name', u.full_name), now(), now(),
+  '', '', '', '', '', '', '', ''
 from (values
   ('11111111-1111-4111-8111-111111111111'::uuid, 'platform@schoolhub.test',  'Platform Operator'),
   ('22222222-2222-4222-8222-222222222222'::uuid, 'admin@greenfield.test',    'Adaeze Obi'),
@@ -28,6 +41,19 @@ from (values
   ('55555555-5555-4555-8555-555555555555'::uuid, 'teacher@brightstar.test',  'Fatima Sani')
 ) as u(id, email, full_name)
 on conflict (id) do nothing;
+
+-- auth.identities.email is a generated column, so it is never inserted.
+insert into auth.identities (
+  provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+)
+select u.id::text, u.id,
+       jsonb_build_object('sub', u.id::text, 'email', u.email,
+                          'email_verified', true, 'phone_verified', false),
+       'email', now(), now(), now()
+from auth.users u
+where not exists (
+  select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email'
+);
 
 update public.profiles set is_platform_admin = true
 where id = '11111111-1111-4111-8111-111111111111';

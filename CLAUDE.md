@@ -52,6 +52,12 @@ accessible · works at 360px · audit log written for mutations · tests passing
 - **Small commits.** Each leaves the app runnable and the tests green.
   Conventional commit messages.
 - **Report honestly.** Half-working is described as half-working.
+- **Seeding `auth.users` by hand** must set `confirmation_token`,
+  `recovery_token`, `email_change_token_new` and `email_change` to `''` (they
+  have no default, and GoTrue scans them as non-nullable strings) and insert a
+  matching `auth.identities` row. Otherwise every sign-in fails with
+  "Database error querying schema". `supabase/tests/auth_seed_sanity.sql`
+  guards this.
 
 ## Design constraints that outrank aesthetics
 
@@ -70,4 +76,5 @@ npm run typecheck   # tsc --noEmit
 npm test            # vitest unit suite
 psql "$DATABASE_URL" -f supabase/tests/rls_cross_tenant.sql   # isolation suite
 psql "$DATABASE_URL" -f supabase/tests/rls_roles.sql          # role separation
+psql "$DATABASE_URL" -f supabase/tests/auth_seed_sanity.sql   # seeded users are loginable
 ```
