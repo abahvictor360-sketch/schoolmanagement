@@ -295,3 +295,16 @@ export const brandColorSchema = z.object({
     .union([z.literal(''), z.string().trim().toLowerCase().regex(/^#[0-9a-f]{6}$/, 'Use a six-digit hex colour, like #1d4ed8')])
     .transform((v) => v || null),
 })
+
+/* Platform billing ------------------------------------------------------- */
+export const subscriptionCheckoutSchema = z.object({
+  interval: z.enum(['monthly', 'yearly']),
+})
+
+export const setSchoolPlanSchema = z.object({
+  school_id: z.string().uuid(),
+  plan_code: z.string().min(1).max(40),
+  interval: z.enum(['monthly', 'yearly']).default('monthly'),
+  period_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  trial_ends: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+})

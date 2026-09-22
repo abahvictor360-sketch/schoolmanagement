@@ -217,6 +217,59 @@ export type ResultSheetRow = {
   is_pass: boolean | null
 }
 
+export type BillingInterval = 'monthly' | 'yearly'
+export type BillingChargeStatus = 'pending' | 'paid' | 'failed' | 'abandoned'
+
+/**
+ * The state is never stored. app.subscription_state() derives it from the
+ * dates on every read, so there is no cron to run and nothing to go stale.
+ * 'unbilled' is a school that predates billing.
+ */
+export type SubscriptionState =
+  | 'unbilled' | 'trialing' | 'active' | 'past_due' | 'read_only' | 'canceled'
+
+export type BillingPlanRow = {
+  id: string
+  code: string
+  name: string
+  /** null on the top band: no ceiling. */
+  max_students: number | null
+  monthly_amount: number
+  yearly_amount: number
+  currency: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export type SchoolSubscriptionRow = Timestamps & {
+  school_id: string
+  plan_id: string
+  billing_interval: BillingInterval
+  trial_ends_on: string | null
+  current_period_start: string
+  current_period_end: string
+  grace_days: number
+  canceled_at: string | null
+}
+
+export type BillingChargeRow = Timestamps & {
+  id: string
+  school_id: string
+  plan_id: string
+  billing_interval: BillingInterval
+  period_start: string
+  period_end: string
+  /** The roll the band was chosen from, frozen so the bill stays defensible. */
+  student_count: number
+  amount: number
+  currency: string
+  status: BillingChargeStatus
+  provider: string | null
+  provider_reference: string | null
+  paid_at: string | null
+}
+
 type Table<Row, Required extends keyof Row> = {
   Row: Row
   Insert: Pick<Row, Required> & Partial<Omit<Row, Required>>
@@ -263,6 +316,9 @@ export type Database = {
       invoice_items: Table<InvoiceItemRow, 'school_id' | 'invoice_id' | 'label' | 'amount'>
       payments: Table<PaymentRow, 'school_id' | 'invoice_id' | 'amount' | 'method' | 'payer_kind' | 'reference'>
       school_payment_settings: Table<SchoolPaymentSettingsRow, 'school_id'>
+      billing_plans: Table<BillingPlanRow, 'code' | 'name' | 'monthly_amount' | 'yearly_amount' | 'sort_order'>
+      school_subscriptions: Table<SchoolSubscriptionRow, 'school_id' | 'plan_id' | 'current_period_end'>
+      billing_charges: Table<BillingChargeRow, 'school_id' | 'plan_id' | 'billing_interval' | 'period_start' | 'period_end' | 'student_count' | 'amount' | 'currency'>
     }
     Views: {
       invoice_balances: {
@@ -298,6 +354,23 @@ export type Database = {
         Returns: string
       }
       post_message: { Args: { p_thread: string; p_body: string }; Returns: string }
+      start_subscription_checkout: {
+        Args: { target_school: string; chosen_interval: BillingInterval }
+        Returns: Json
+      }
+      confirm_subscription_payment: {
+        Args: { charge_reference: string; paid_provider: string }
+        Returns: Json
+      }
+      abandon_subscription_charge: { Args: { charge_reference: string }; Returns: undefined }
+      set_school_subscription: {
+        Args: {
+          target_school: string; plan_code: string
+          chosen_interval?: BillingInterval; period_end?: string | null; trial_ends?: string | null
+        }
+        Returns: undefined
+      }
+      cancel_subscription: { Args: { target_school: string }; Returns: undefined }
       messageable_staff: {
         Args: { p_school_id: string }
         Returns: { user_id: string; full_name: string; designation: string | null }[]

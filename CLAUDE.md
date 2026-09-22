@@ -22,11 +22,13 @@ full brief.
    migrations, seeds and audited background jobs.
 5. **Scope discipline.** Release 1 is milestones 1–6 in SPEC.md §7 and is
    complete. **Release 2 was opened deliberately by the owner** and covers the
-   student portal, assessments and results, CBT, and messaging — all of which
-   SPEC.md §8 had excluded from R1. Everything still in §8 (fees and invoicing,
-   guardian portal, SMS, timetabling, library, transport, hostel, analytics
-   dashboards, native apps, billing) remains out of scope. Adjacent and cheap
-   is still out of scope.
+   student portal, assessments and results, CBT, messaging, and fees and
+   invoicing. **Platform billing was opened separately by the owner** — what a
+   school pays the operator to use SchoolHub, priced in bands by pupil count,
+   monthly or yearly, with a 30-day trial. Everything still in SPEC.md §8
+   (guardian portal, SMS, timetabling, library, transport, hostel, analytics
+   dashboards, native apps) remains out of scope. Adjacent and cheap is still
+   out of scope.
 
 6. **A pupil is a member, so "member" is not a permission.** `app.can_read()`
    means *staff* (school_admin, teacher, bursar). `app.can_read_reference()` is
@@ -35,7 +37,26 @@ full brief.
    `app.my_student_id()` or `app.owns_enrollment()`. Never widen a read policy
    back to `app.is_member()` without checking what it hands a child.
 
-7. **The CBT answer key is not a column.** RLS is row-level, so correctness
+7. **Two kinds of money, never confused.** *Fees* are a school billing a
+   parent: the school's own gateway account, its own currency, `invoices` and
+   `payments`. *Billing* is the operator billing a school: the platform's
+   gateway account from `PLATFORM_BILLING_*`, `billing_charges` and
+   `school_subscriptions`. A school must never be able to price, extend or
+   settle its own subscription — those tables take writes only from the
+   security definer functions, and the RLS policies name `is_platform_admin()`
+   alone.
+
+8. **A lapsed school reads everything and writes nothing.** Enforcement is the
+   `app.billing_permits_writes()` conjunct on every staff *write* policy, never
+   in a server action — a signed-in user's JWT reaches PostgREST directly. Read
+   policies are untouched, and three paths stay open by design: a parent paying
+   fees, a pupil finishing a published test, and messaging. Subscription state
+   is derived from dates by `app.subscription_state()` on every read; there is
+   no cron, so never add a stored `status` column for it to go stale. A school
+   with no subscription row is `unbilled` and writes freely — that grandfathers
+   anything created before billing existed.
+
+9. **The CBT answer key is not a column.** RLS is row-level, so correctness
    lives in `cbt_answer_keys`, which has no student-readable policy at all.
    Marking runs in a security definer function. Never add an `is_correct`
    column to anything a candidate can select.
@@ -95,5 +116,6 @@ psql "$DATABASE_URL" -f supabase/tests/rls_roles.sql          # role separation
 psql "$DATABASE_URL" -f supabase/tests/rls_student.sql        # a pupil sees only themselves
 psql "$DATABASE_URL" -f supabase/tests/rls_student_academics.sql  # answer key stays hidden
 psql "$DATABASE_URL" -f supabase/tests/rls_messaging.sql      # who may write to whom
+psql "$DATABASE_URL" -f supabase/tests/rls_billing.sql       # a lapsed school reads but cannot write
 psql "$DATABASE_URL" -f supabase/tests/auth_seed_sanity.sql   # seeded users are loginable
 ```

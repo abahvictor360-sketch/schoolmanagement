@@ -3,6 +3,8 @@ import { requireSchool, myMemberships } from '@/lib/auth'
 import { AppShell } from '@/components/app-shell'
 import { brandStyle } from '@/lib/branding'
 import { countUnreadThreads } from '@/lib/messaging'
+import { loadSubscription } from '@/lib/billing'
+import { SubscriptionBanner } from '@/components/billing/banner'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireSchool()
@@ -10,9 +12,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Pupils get their own shell; the staff navigation is not theirs.
   if (ctx.role === 'student') redirect('/portal')
 
-  const [memberships, unreadMessages] = await Promise.all([
+  const [memberships, unreadMessages, subscription] = await Promise.all([
     myMemberships(),
     countUnreadThreads(ctx.userId),
+    loadSubscription(ctx.school.id),
   ])
 
   // A school that has never completed setup has no terms, so nothing else in
@@ -28,6 +31,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         schools={memberships.map((m) => ({ id: m.school.id, name: m.school.name, role: m.role }))}
         unreadMessages={unreadMessages}
       >
+        <SubscriptionBanner
+          subscription={subscription}
+          canPay={ctx.role === 'school_admin' || ctx.isPlatformAdmin}
+        />
         {children}
       </AppShell>
     </div>

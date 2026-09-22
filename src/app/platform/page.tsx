@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePlatformAdmin } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { deriveState, STATE_COPY } from '@/lib/billing'
 import {
   Badge, Card, CardHeader, CardTitle, DataTable, EmptyState, PageHeader, Td, Th,
 } from '@/components/ui/primitives'
@@ -17,6 +18,13 @@ type SchoolRow = {
   status: string
   created_at: string
   memberships: { count: number }[]
+  subscription: {
+    current_period_end: string
+    trial_ends_on: string | null
+    grace_days: number
+    canceled_at: string | null
+    plan: { name: string } | null
+  } | null
 }
 
 export default async function PlatformPage() {
@@ -25,7 +33,11 @@ export default async function PlatformPage() {
 
   const { data: schools } = await supabase
     .from('schools')
-    .select('id, name, slug, status, created_at, memberships(count)')
+    .select(
+      'id, name, slug, status, created_at, memberships(count), ' +
+      'subscription:school_subscriptions(current_period_end, trial_ends_on, grace_days, ' +
+      'canceled_at, plan:billing_plans(name))',
+    )
     .order('created_at', { ascending: false })
     .returns<SchoolRow[]>()
 
@@ -60,6 +72,7 @@ export default async function PlatformPage() {
                   <Th>School</Th>
                   <Th>Subdomain</Th>
                   <Th className="text-right">Members</Th>
+                  <Th>Subscription</Th>
                   <Th>Status</Th>
                 </tr>
               </thead>
@@ -69,6 +82,23 @@ export default async function PlatformPage() {
                     <Td className="font-medium">{s.name}</Td>
                     <Td className="font-mono text-[13px]">{s.slug}</Td>
                     <Td className="text-right tabular-nums">{s.memberships[0]?.count ?? 0}</Td>
+                    <Td>
+                      {(() => {
+                        // Recomputed from the same dates the database derives
+                        // from, so this column cannot disagree with the gate.
+                        const state = deriveState(s.subscription)
+                        const copy = STATE_COPY[state]
+                        return (
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <Badge tone={copy.tone}>{copy.label}</Badge>
+                            <span className="text-[12px] text-ink-muted">
+                              {s.subscription?.plan?.name ?? ''}
+                              {s.subscription ? ` · to ${s.subscription.current_period_end}` : ''}
+                            </span>
+                          </span>
+                        )
+                      })()}
+                    </Td>
                     <Td>
                       <Badge tone={s.status === 'active' ? 'positive' : 'warn'} className="capitalize">
                         {s.status}

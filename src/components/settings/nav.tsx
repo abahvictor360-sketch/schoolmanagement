@@ -10,6 +10,7 @@ const TABS = [
   { href: '/settings/classes', label: 'Classes and subjects' },
   { href: '/settings/branding', label: 'Branding' },
   { href: '/settings/payments', label: 'Payments' },
+  { href: '/settings/billing', label: 'Subscription' },
   { href: '/settings/people', label: 'Access' },
   { href: '/settings/audit', label: 'Audit log' },
 ]
