@@ -115,6 +115,47 @@ begin
   if seen <> 0 then failures := failures || 'anon read payment settings'; end if;
   reset role;
 
+  -- A pending hold subtracts from what may be charged next. Nothing used to
+  -- release one, so a payer who opened checkout and pressed back was refused
+  -- on an invoice they still owed in full.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', pupil_uid, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+
+  declare
+    first_ref text; second_ref text; again jsonb; settled jsonb; held bigint;
+  begin
+    opened := public.begin_card_payment(inv);
+    first_ref := opened ->> 'reference';
+
+    again := public.begin_card_payment(inv);
+    second_ref := again ->> 'reference';
+    if (again ->> 'amount')::numeric <> (opened ->> 'amount')::numeric then
+      failures := failures || 'an immediate retry was offered a different amount';
+    end if;
+
+    select count(*) into held from public.payments
+     where invoice_id = inv and status = 'pending' and method = 'card';
+    if held <> 1 then
+      failures := failures || 'abandoned card holds accumulated on the invoice';
+    end if;
+
+    -- Releasing a hold must never lose money that actually moved: if the payer
+    -- pressed back and paid the first one anyway, it still has to credit.
+    settled := public.confirm_card_payment(first_ref, 'GW-RELEASED', 1);
+    if (settled ->> 'status') <> 'confirmed' then
+      failures := failures || 'a released hold the gateway confirmed did not credit the invoice';
+    end if;
+
+    -- Tidy up so the rest of the suite sees the ledger it expects.
+    reset role;
+    delete from public.payments where reference in (first_ref, second_ref);
+    set local role authenticated;
+  exception when others then
+    failures := failures || ('card hold retry checks raised: ' || sqlerrm);
+  end;
+  reset role;
+
   if array_length(failures, 1) is null then
     raise notice 'fees suite: all checks passed';
   else

@@ -2,8 +2,16 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireStudent } from '@/lib/student'
 import { createClient } from '@/lib/supabase/server'
-import { Badge, Card, CardBody, CardHeader, CardTitle, EmptyState } from '@/components/ui/primitives'
-import type { AttendanceStatus } from '@/lib/database.types'
+import { CalendarCheck, ClipboardList, PenSquare, TrendingUp } from 'lucide-react'
+import {
+  Badge, Card, CardBody, CardHeader, CardTitle, EmptyState, StatTile,
+} from '@/components/ui/primitives'
+import { money } from '@/lib/money'
+import { PROVIDERS, type ProviderKey } from '@/lib/payments/providers'
+import { FeesCallout } from '@/components/portal/fees-callout'
+import type {
+  AttendanceStatus, InvoiceBalanceRow, SchoolPaymentSettingsRow,
+} from '@/lib/database.types'
 
 export const metadata: Metadata = { title: 'Home' }
 
@@ -22,8 +30,10 @@ export default async function PortalHome() {
     )
   }
 
-  const [{ data: marks }, { data: results }, { data: openTests }, { data: unread }] =
-    await Promise.all([
+  const [
+    { data: marks }, { data: results }, { data: openTests }, { data: unread },
+    { data: balances }, { data: settings },
+  ] = await Promise.all([
       supabase
         .from('attendance_entries')
         .select('status')
@@ -41,11 +51,30 @@ export default async function PortalHome() {
         .from('thread_participants')
         .select('thread_id, last_read_at')
         .eq('user_id', ctx.userId),
+      supabase
+        .from('invoice_balances')
+        .select('invoice_id, balance, due_on')
+        .eq('enrollment_id', ctx.enrollment.id)
+        // Explicit, because the callout below pays "the oldest one first".
+        .order('due_on', { ascending: true, nullsFirst: false })
+        .returns<Pick<InvoiceBalanceRow, 'invoice_id' | 'balance' | 'due_on'>[]>(),
+      supabase
+        .from('school_payment_settings')
+        .select('provider, is_enabled, is_live, public_key, merchant_code, service_type_id')
+        .eq('school_id', ctx.school.id)
+        .maybeSingle<SchoolPaymentSettingsRow>(),
     ])
 
   const present = (marks ?? []).filter((m) => m.status === 'present' || m.status === 'late').length
   const total = marks?.length ?? 0
   const rate = total === 0 ? null : Math.round((present / total) * 100)
+
+  const invoices = balances ?? []
+  const outstanding = invoices.reduce((sum, b) => sum + Number(b.balance), 0)
+  // Ordered by due date above, so this is the one due soonest.
+  const openInvoice = invoices.find((b) => Number(b.balance) > 0) ?? null
+  const providerKey = (settings?.provider ?? 'paystack') as ProviderKey
+  const canPayOnline = Boolean(settings?.is_enabled && settings?.public_key)
 
   const graded = results ?? []
   const average =
@@ -65,11 +94,41 @@ export default async function PortalHome() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Attendance" value={rate === null ? '—' : `${rate}%`} />
-        <Stat label="Subjects graded" value={String(graded.length)} />
-        <Stat label="Average" value={average === null ? '—' : `${average}%`} />
-        <Stat label="Open tests" value={String(openTests?.length ?? 0)} />
+        <StatTile
+          label="Attendance"
+          value={rate === null ? '—' : `${rate}%`}
+          tint="mint"
+          icon={CalendarCheck}
+        />
+        <StatTile
+          label="Subjects graded"
+          value={graded.length}
+          tint="violet"
+          icon={ClipboardList}
+        />
+        <StatTile
+          label="Average"
+          value={average === null ? '—' : `${average}%`}
+          tint="sky"
+          icon={TrendingUp}
+        />
+        <StatTile
+          label="Open tests"
+          value={openTests?.length ?? 0}
+          tint="peach"
+          icon={PenSquare}
+        />
       </div>
+
+      {/* Money first: it is what a family opens this portal for. */}
+      <FeesCallout
+        outstanding={outstanding}
+        formatted={money(ctx.config, outstanding)}
+        invoiceId={openInvoice?.invoice_id ?? null}
+        canPayOnline={canPayOnline}
+        providerLabel={PROVIDERS[providerKey].label}
+        dueOn={openInvoice?.due_on ?? null}
+      />
 
       {openTests && openTests.length > 0 ? (
         <Card>
@@ -136,16 +195,5 @@ export default async function PortalHome() {
         </Card>
       </div>
     </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-2xl font-semibold tracking-[-0.02em] tabular-nums">{value}</p>
-        <p className="mt-1 text-[13px] text-ink-muted">{label}</p>
-      </CardBody>
-    </Card>
   )
 }
